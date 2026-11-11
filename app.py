@@ -46,10 +46,10 @@ if st.session_state.play_bg_music:
     background_youtube_id = "ZRtdQ81jPUQ"
     # Using visible dimensions so browsers don't block hidden audio
     bg_music_html = f"""
-    <iframe width="300" height="80" src="https://www.youtube.com/embed/{background_youtube_id}?autoplay=1&loop=1&playlist={background_youtube_id}" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+    <iframe width="100%" height="200" src="https://www.youtube.com/embed/{background_youtube_id}?autoplay=1&loop=1&playlist={background_youtube_id}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
     """
-    components.html(bg_music_html, height=90)
-    st.caption("🎶 Background music player loaded above.")
+    components.html(bg_music_html, height=210)
+    st.caption("🎶 Background music player loaded above. Tap play if required by mobile browser.")
 else:
     st.caption("🔇 Background music is currently off.")
 # =========================================================================
@@ -314,9 +314,9 @@ if valid and tickets > 0:
       
       # Play Winning YouTube Audio via hidden iframe
       win_html = f"""
-      <iframe width="0" height="0" src="https://www.youtube.com/embed/{winner_youtube_id}?autoplay=1" frameborder="0" allow="autoplay"></iframe>
+      <iframe width="100%" height="150" src="https://www.youtube.com/embed/{winner_youtube_id}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
       """
-      components.html(win_html, height=0)
+      components.html(win_html, height=160)
       
       for prize, count in winning_summary.items():
         if count > 0:
@@ -326,9 +326,9 @@ if valid and tickets > 0:
       
       # Play Losing YouTube Audio via hidden iframe
       lose_html = f"""
-      <iframe width="0" height="0" src="https://www.youtube.com/embed/{loser_youtube_id}?autoplay=1" frameborder="0" allow="autoplay"></iframe>
+      <iframe width="100%" height="150" src="https://www.youtube.com/embed/{loser_youtube_id}?autoplay=1" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
       """
-      components.html(lose_html, height=0)
+      components.html(lose_html, height=160)
 
     if net_profit >= 0:
       st.markdown(f"📈 淨利潤：+HKD ${net_profit:,.1f} 🟢")
