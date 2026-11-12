@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HK Mark Six 六合彩模擬器</title>
+<style>
+  :root {
+    --bg: #0b1220;
+    --card: #152033;
+    --accent: #f59e0b;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Segoe UI", "Microsoft JhengHei", sans-serif;
+    background: radial-gradient(ellipse at top, #1a2740 0%, #0b1220 70%);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 16px;
+    position: relative;
+  }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  h1 { text-align: center; font-size: 1.9rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 20px; font-size: 0.95rem; }
+  
+  /* Expanded Top-Right Account Info Panel */
+  .account-panel {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 390px;
+    background: rgba(21, 32, 51, 0.96);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 12px 36px rgba(0,0,0,0.6);
+    z-index: 1000;
+    backdrop-filter: blur(8px);
+  }
+  .account-panel .section-title { font-size: 1rem; margin-bottom: 10px; color: var(--accent); font-weight: 700; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px; }
+  .acc-row { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 6px; }
+  .acc-row span:last-child { font-weight: 700; }
+  .acc-controls { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .acc-controls button { flex: 1; padding: 8px 10px; font-size: 0.8rem; }
+  
+  @media(max-width: 1380px) {
+    .account-panel { position: relative; top: 0; right: 0; width: 100%; margin-bottom: 16px; }
+  }
+
+  .card {
+    background: var(--card);
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.05);
+  }
+  .section-title { font-size: 1.05rem; margin-bottom: 12px; color: var(--accent); font-weight: 700; }
+  .radio-group { display: flex; gap: 18px; flex-wrap: wrap; }
+  .radio-group label { cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 0.95rem; }
+  .btn {
+    background: var(--accent);
+    color: #111;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 10px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.15s;
+    font-size: 0.9rem;
+  }
+  .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
+  .btn-secondary { background: #334155; color: #fff; }
+  .btn-danger { background: #ef4444; color: #fff; }
+  .btn-primary { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; font-size: 0.95rem; padding: 10px 16px; }
+  .btn-batch { background: #334155; color: #fff; border: 1px solid rgba(255,255,255,0.15); flex: 1; }
+  .btn-batch.active { background: var(--accent); color: #111; border-color: var(--accent); }
+  .btn-confirm { background: linear-gradient(135deg, #e11d48, #be123c); color: #fff; font-size: 1.1rem; padding: 14px 28px; width: 100%; margin-top: 12px; }
+
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 8px 0; }
+  input[type="number"], select {
+    background: #0b1220;
+    border: 1px solid #334155;
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 8px;
+  }
+  input[type="number"] { width: 72px; }
+  select { max-width: 100%; flex: 1; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 12px;
+    margin: 14px 0;
+    justify-items: center;
+  }
+  
+  /* Ultra-Realistic Mark Six Ball Design */
+  .ball {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 900;
+    font-size: 1.1rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    box-shadow: 
+      inset -4px -4px 10px rgba(0,0,0,0.6), 
+      inset 4px 4px 10px rgba(255,255,255,0.5), 
+      0 5px 12px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    border: 2px solid rgba(255,255,255,0.3);
+  }
+  .ball::before {
+    content: "";
+    position: absolute;
+    top: 5%;
+    left: 12%;
+    width: 45%;
+    height: 28%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1));
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .ball:hover { transform: scale(1.1) translateY(-2px); }
+  .ball.selected {
+    box-shadow: 
+      inset -4px -4px 10px rgba(0,0,0,0.6), 
+      inset 4px 4px 10px rgba(255,255,255,0.5), 
+      0 0 0 3px #fff, 
+      0 0 16px rgba(255,255,255,0.9);
+  }
+  .ball.banker {
+    box-shadow: 
+      inset -4px -4px 10px rgba(0,0,0,0.6), 
+      inset 4px 4px 10px rgba(255,255,255,0.5), 
+      0 0 0 3px #f59e0b, 
+      0 0 16px #f59e0b;
+  }
+  .ball.leg {
+    box-shadow: 
+      inset -4px -4px 10px rgba(0,0,0,0.6), 
+      inset 4px 4px 10px rgba(255,255,255,0.5), 
+      0 0 0 3px #38bdf8, 
+      0 0 16px #38bdf8;
+  }
+  .ball.drawn {
+    animation: popIn 0.55s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .ball.win {
+    animation: winBounce 0.7s ease infinite;
+  }
+  @keyframes popIn {
+    0% { transform: scale(0) rotate(-30deg); opacity: 0; }
+    70% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+  @keyframes winBounce {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.18); }
+  }
+
+  .red { background: radial-gradient(circle at 35% 30%, #ff6b6b, #dc2626 50%, #7f1d1d 100%); color: #fff; }
+  .blue { background: radial-gradient(circle at 35% 30%, #60a5fa, #2563eb 50%, #1e3a8a 100%); color: #fff; }
+  .green { background: radial-gradient(circle at 35% 30%, #4ade80, #16a34a 50%, #14532d 100%); color: #fff; }
+
+  .metrics { display: flex; gap: 14px; flex-wrap: wrap; margin: 14px 0; }
+  .metric {
+    background: #0b1220;
+    padding: 14px 18px;
+    border-radius: 12px;
+    flex: 1;
+    min-width: 130px;
+    text-align: center;
+  }
+  .metric .value { font-size: 1.5rem; font-weight: 800; color: var(--accent); }
+  .metric .label { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+  .warning { color: #fbbf24; margin: 6px 0; font-size: 0.95rem; }
+  .success { color: #4ade80; margin: 6px 0; }
+  .info { color: var(--muted); margin: 6px 0; font-size: 0.9rem; }
+  
+  .draw-container {
+    background: #0b1220;
+    border-radius: 14px;
+    padding: 16px;
+    margin-top: 12px;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .draw-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95rem;
+    color: var(--muted);
+    border-bottom: 1px solid #1e293b;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+  }
+  .draw-balls-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .plus-sign {
+    font-size: 1.6rem;
+    font-weight: 900;
+    color: var(--muted);
+    margin: 0 4px;
+  }
+
+  /* Tables & Expandable history */
+  .record-table, .prize-breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.85rem;
+    text-align: left;
+  }
+  .record-table th, .record-table td, .prize-breakdown-table th, .prize-breakdown-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #1e293b;
+  }
+  .record-table th, .prize-breakdown-table th { color: var(--accent); background: #0b1220; }
+  .expand-btn {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    padding: 2px 6px;
+  }
+  .sub-row { background: rgba(255, 255, 255, 0.02); }
+  .sub-ticket-list {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    color: var(--muted);
+    border-left: 3px solid var(--accent);
+    margin: 4px 0;
+  }
+
+  /* Full-screen Wuthering Waves 5-Star Video Overlay */
+  #gachaOverlay {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    overflow: hidden;
+  }
+  #gachaOverlay.active { display: flex; }
+  #gachaVideo {
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    transform: scale(1.12);
+    pointer-events: none;
+  }
+  .skip-gacha-btn {
+    position: absolute;
+    top: 22px;
+    right: 26px;
+    background: rgba(15, 23, 42, 0.75);
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    padding: 8px 18px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    z-index: 10002;
+    backdrop-filter: blur(4px);
+  }
+  .skip-gacha-btn:hover { background: rgba(245, 158, 11, 0.85); color: #000; }
+
+  #confettiCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  .machine {
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(180deg, #1e293b, #0f172a);
+    border-radius: 50px;
+    margin: 12px 0;
+    position: relative;
+    overflow: hidden;
+    border: 3px solid #334155;
+  }
+  .machine-inner {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .rolling-ball {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    animation: roll 0.4s linear infinite;
+    opacity: 0.85;
+  }
+  @keyframes roll {
+    0% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-14px) rotate(180deg); }
+    100% { transform: translateY(0) rotate(360deg); }
+  }
+  iframe { border-radius: 12px; width: 100%; }
+
+  @media (max-width: 600px) {
+    .grid { grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .ball { width: 40px; height: 40px; font-size: 0.95rem; }
+  }
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+
+<!-- Wuthering Waves 5-Star Video Gacha Overlay -->
+<div id="gachaOverlay">
+  <video id="gachaVideo" src="https://lh3.googleusercontent.com/d/1xHGiZpOH_Np1GK7V4lsWn-IKd1Ook1FE" playsinline preload="auto" crossorigin="anonymous"></video>
+  <button class="skip-gacha-btn" onclick="closeGachaOverlay()">Skip ⏭</button>
+</div>
+
+<!-- Top-Right Account Info Panel -->
+<div class="account-panel">
+  <div class="section-title">帳戶、借貸與破產管理中心</div>
+  <div class="acc-row"><span>現金：</span><span id="accCash" style="color: #4ade80;">$300,000</span></div>
+  <div class="acc-row"><span>銀行貸款 ($1M限額, 10%/年)：</span><span id="accBankDebt" style="color: #ef4444;">$0</span></div>
+  <div class="acc-row"><span>高利貸 ($3M限額, 10%/週)：</span><span id="accUsuryDebt" style="color: #f87171;">$0</span></div>
+  <div class="acc-row" style="border-top:1px solid #1e293b; padding-top:6px; margin-top:6px;"><span>淨資產：</span><span id="accNet">$300,000</span></div>
+  
+  <div class="acc-controls">
+    <button class="btn btn-secondary" onclick="borrowBank(500000)">借銀行 $500k</button>
+    <button class="btn btn-secondary" onclick="repayBank()">還銀行貸款</button>
+  </div>
+  <div class="acc-controls">
+    <button class="btn btn-secondary" onclick="borrowUsury(1000000)" style="background:#7f1d1d;">借高利貸 $1M</button>
+    <button class="btn btn-secondary" onclick="repayUsury()">還高利貸</button>
+  </div>
+  <div class="acc-controls">
+    <button class="btn btn-danger" onclick="declareBankruptcy()" style="width:100%; margin-top:4px;">申請破產 (重置模擬)</button>
+  </div>
+  <p id="accMsg" class="info" style="font-size:0.75rem; margin-top:6px;">虛擬時間：第 1 天 (第 1 年)</p>
+</div>
+
+<div class="container">
+  <h1>HK Mark Six</h1>
+  <p class="subtitle">Powered by HinaHinaJavaGod</p>
+
+  <!-- 背景音樂 -->
+  <div class="card">
+    <div class="section-title">背景音樂</div>
+    <div class="controls">
+      <button class="btn" onclick="toggleMusic(true)">開啟背景音樂</button>
+      <button class="btn btn-secondary" onclick="toggleMusic(false)">關閉背景音樂</button>
+    </div>
+    <div id="musicEmbed"></div>
+    <p id="musicStatus" class="info">背景音樂目前關閉</p>
+  </div>
+
+  <!-- 投注方式與注碼規則 -->
+  <div class="card">
+    <div class="section-title">選擇投注方式與注碼單價</div>
+    <div class="controls" style="margin-bottom: 10px;">
+      <label>注碼單價：</label>
+      <select id="unitPrice" onchange="evaluate()">
+        <option value="10">港幣 $10 (標準全注)</option>
+        <option value="5">港幣 $5 (部分注項 / 半注)</option>
+      </select>
+    </div>
+    <div class="radio-group">
+      <label><input type="radio" name="method" value="single" checked onchange="changeMethod()"> 單式 (Single)</label>
+      <label><input type="radio" name="method" value="multiple" onchange="changeMethod()"> 複式 (Multiple)</label>
+      <label><input type="radio" name="method" value="banker" onchange="changeMethod()"> 膽拖 (Banker / Legs)</label>
+    </div>
+  </div>
+
+  <!-- 智能機選與心水號碼收藏列表 -->
+  <div class="card">
+    <div class="section-title">智能機選與我的心水號碼管理</div>
+    <div id="qpSingleMultiple">
+      <div class="controls">
+        <label>選幾個號碼：</label>
+        <input type="number" id="qpCount" min="6" max="49" value="6">
+        <button class="btn" onclick="quickPickBalanced()">平衡機選</button>
+        <button class="btn btn-secondary" onclick="quickPickChaos()">完全隨機</button>
+      </div>
+    </div>
+    <div id="qpBanker" style="display:none;">
+      <div class="controls">
+        <label>膽碼：</label>
+        <input type="number" id="bTarget" min="1" max="5" value="2">
+        <label>拖碼：</label>
+        <input type="number" id="lTarget" min="2" max="48" value="6">
+        <button class="btn" onclick="quickPickBanker()">隨機生成膽拖</button>
+      </div>
+    </div>
+    
+    <div class="controls" style="margin-top:10px;">
+      <button class="btn btn-secondary" onclick="saveFavoriteNumbers()">💾 儲存至心水清單</button>
+      <button class="btn btn-danger" onclick="clearAll()">清除所有選擇</button>
+    </div>
+
+    <div class="controls" style="margin-top:10px;">
+      <label>📂 心水號碼歷史記錄 (最多20組)：</label>
+      <select id="favoriteSelect" onchange="loadSelectedFavorite(this.value)">
+        <option value="">-- 請選擇已儲存的心水號碼組 --</option>
+      </select>
+    </div>
+    <div id="favoriteMsg" class="info" style="margin-top:4px;"></div>
+  </div>
+
+  <!-- 選號區 -->
+  <div class="card">
+    <div class="section-title">選擇號碼 (1–49)</div>
+    <div id="numberGrid" class="grid"></div>
+    <div id="bankerLegInfo" style="display:none;" class="info">膽碼會出現在每一注；拖碼用來組成完整 6 個號碼。</div>
+  </div>
+
+  <!-- 結果與機率 -->
+  <div class="card">
+    <div id="statusMsg" class="info">請選擇號碼或使用機選</div>
+    <div id="metricsArea" style="display:none;">
+      <div class="metrics">
+        <div class="metric">
+          <div class="value" id="ticketCount">0</div>
+          <div class="label">總注數</div>
+        </div>
+        <div class="metric">
+          <div class="value" id="totalCost">$0</div>
+          <div class="label">總投注 (HKD)</div>
+        </div>
+      </div>
+      <div class="section-title">中獎機率分佈</div>
+      <div id="probList"></div>
+      <div id="anyPrize" style="margin-top:10px; font-size:1.05rem;"></div>
+    </div>
+  </div>
+
+  <!-- 模擬開獎與投注清單 (Bet List) -->
+  <div class="card" id="simCard" style="display:none;">
+    <div class="section-title">購買次數設定與投注清單 (含金多寶 Snowball 累積)</div>
+    <div id="snowballInfo" class="warning" style="margin-bottom: 10px;">目前累積金多寶 (Snowball)：$8,000,000 HKD</div>
+    
+    <div class="info" style="margin-bottom:6px;">選擇要買幾次並加入投注清單：</div>
+    <div class="controls" style="gap: 8px; margin-bottom: 12px;">
+      <button class="btn btn-batch" onclick="addToBetList(1)">Bet 1 time (加入 1 次)</button>
+      <button class="btn btn-batch" onclick="addToBetList(10)">Bet 10 times (加入 10 次)</button>
+      <button class="btn btn-batch" onclick="addToBetList(100)">Bet 100 times (加入 100 次)</button>
+    </div>
+
+    <!-- 投注清單 (Bet List placed strictly between 'betting how many times' and 'bet confirm button') -->
+    <div id="betListContainer" style="margin: 12px 0; background: #0b1220; border-radius: 12px; padding: 14px; border: 1px solid rgba(255,255,255,0.1);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <span style="font-weight: bold; color: var(--accent);">📋 本期投注清單 (Bet List)</span>
+        <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.8rem;" onclick="clearBetList()">清空清單</button>
+      </div>
+      <div id="betListItems" style="max-height: 160px; overflow-y: auto; font-size: 0.85rem; color: var(--muted);">
+        目前清單尚無彩票，請點擊上方按鈕加入
+      </div>
+      <div id="betListSummary" style="margin-top: 10px; font-size: 0.9rem; font-weight: bold; border-top: 1px solid #1e293b; padding-top: 8px;">
+        總注數: 0 | 總金額: $0
+      </div>
+    </div>
+
+    <!-- Bet Confirm 按鈕：點擊後才扣款並揭曉開獎 -->
+    <button class="btn btn-confirm" id="confirmBtn" onclick="runConfirmedBet()">Bet Confirm (確認投注並開獎)</button>
+
+    <div id="drawResult" style="display:none; margin-top:16px;">
+      <div class="machine" id="machine">
+        <div class="machine-inner" id="machineInner"></div>
+      </div>
+      <div class="draw-area">
+        <div class="section-title">本期開獎結果與詳細派彩分佈</div>
+        <div id="latestDrawDisplay"></div>
+        <div id="smartNotificationBox" class="success" style="margin: 10px 0; font-weight: bold;"></div>
+        <div id="prizeReport" class="prize-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 統計、走勢與號碼遺漏值 (Gap Analysis) -->
+  <div class="card">
+    <div class="section-title">開獎統計、走勢分析與遺漏值 (Gap Analysis)</div>
+    <div class="metrics" style="margin-bottom: 10px;">
+      <div class="metric">
+        <div class="value" id="statOddEven">50% : 50%</div>
+        <div class="label">奇偶分佈 (近期)</div>
+      </div>
+      <div class="metric">
+        <div class="value" id="statHighLow">50% : 50%</div>
+        <div class="label">高低分佈 (大:25-49 / 小:1-24)</div>
+      </div>
+    </div>
+    <div id="hotColdReport" class="info" style="margin-bottom: 8px;">🔥 尚無足夠開獎數據進行熱門號碼統計。</div>
+    <div id="gapReport" class="info" style="max-height: 120px; overflow-y: auto;">⏳ 各號碼遺漏期數追蹤中...</div>
+  </div>
+
+  <!-- 遊戲規則與指南 -->
+  <div class="card">
+    <div class="section-title">六合彩遊戲規則與指南</div>
+    <div class="info" style="line-height: 1.6;">
+      • <strong>基本玩法：</strong> 從 1 至 49 中挑選 6 個號碼進行單式投注（每注標準 HK$10 或 HK$5 部分注項）。<br>
+      • <strong>開獎結構：</strong> 每期攪出 6 個「正碼」及 1 個「特別碼」。<br>
+      • <strong>獎項級別與金多寶：</strong> 頭獎（6正碼）、二獎（5正碼+特別碼）、三獎（5正碼）、四獎（4正碼+特別碼）、五獎（4正碼）、六獎（3正碼+特別碼）、七獎（3正碼）。頭二獎會自動累積金多寶 (Snowball) 共同派彩。<br>
+      • <strong>複式與膽拖：</strong> 複式可選 7 至 49 個號碼涵蓋多注；膽拖可指定固定「膽碼」配搭多個「拖碼」。
+    </div>
+  </div>
+
+  <!-- 歷史記錄與投注統計系統 -->
+  <div class="card">
+    <div class="section-title">歷史記錄與財務總覽</div>
+    <div class="metrics" style="margin-bottom: 14px;">
+      <div class="metric">
+        <div class="value" id="statTotalSpent">$0</div>
+        <div class="label">總投注金額</div>
+      </div>
+      <div class="metric">
+        <div class="value" id="statTotalWon">$0</div>
+        <div class="label">總中獎金額</div>
+      </div>
+      <div class="metric">
+        <div class="value" id="statNetPL">$0</div>
+        <div class="label">歷史淨損益</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="record-table">
+        <thead>
+          <tr>
+            <th>期數</th>
+            <th>時間 (虛擬)</th>
+            <th>方式</th>
+            <th>總注數</th>
+            <th>總洗費</th>
+            <th>總獎金</th>
+            <th>淨損益</th>
+            <th>明細 (▼)</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody">
+          <tr><td colspan="8" style="text-align:center; color:var(--muted);">尚無歷史記錄</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+// 官方球色
+const RED = new Set([1,2,7,8,12,13,18,19,23,24,29,30,34,35,40,46]);
+const BLUE = new Set([3,4,9,10,14,15,20,25,26,31,36,37,41,42,47,48]);
+function ballColor(n) {
+  if (RED.has(n)) return "red";
+  if (BLUE.has(n)) return "blue";
+  return "green";
+}
+
+const TOTAL = 13983816;
+let currentUnitPrice = 10;
+let snowballPool = 8000000; 
+
+const PRIZE_ODDS = {
+  "頭獎 (6 正碼)": 1 / TOTAL,
+  "二獎 (5 正 + 特別)": 6 / TOTAL,
+  "三獎 (5 正碼)": 252 / TOTAL,
+  "四獎 (4 正 + 特別)": 630 / TOTAL,
+  "五獎 (4 正碼)": 12915 / TOTAL,
+  "六獎 (3 正 + 特別)": 17220 / TOTAL,
+  "七獎 (3 正碼)": 229600 / TOTAL
+};
+const ANY_PROB = Object.values(PRIZE_ODDS).reduce((a,b)=>a+b,0);
+
+let selected = [], bankers = [], legs = [], method = "single";
+let currentBetList = []; 
+let favoriteList = [];
+let audioCtx = null;
+
+let cash = 1000000;
+let bankDebt = 0;
+let usuryDebt = 0;
+let virtualDay = 1;
+let drawCounter = 84;
+
+let historyRecords = [];
+let lifetimeSpent = 0;
+let lifetimeWon = 0;
+let numberFrequency = Array(50).fill(0);
+let numberGaps = Array(50).fill(0);
+
+function updateAccountUI() {
+  const net = cash - (bankDebt + usuryDebt);
+  document.getElementById("accCash").textContent = "$" + Math.round(cash).toLocaleString();
+  document.getElementById("accBankDebt").textContent = "$" + Math.round(bankDebt).toLocaleString();
+  document.getElementById("accUsuryDebt").textContent = "$" + Math.round(usuryDebt).toLocaleString();
+  const netEl = document.getElementById("accNet");
+  netEl.textContent = "$" + Math.round(net).toLocaleString();
+  netEl.style.color = net >= 0 ? "var(--accent)" : "#ef4444";
+
+  const currentYear = Math.floor((virtualDay - 1) / 365) + 1;
+  const currentWeek = Math.floor((virtualDay - 1) / 7) + 1;
+  document.getElementById("accMsg").textContent = `虛擬時間：第 ${virtualDay} 天（第 ${currentYear} 年，第 ${currentWeek} 週）`;
+  document.getElementById("snowballInfo").textContent = `目前累積金多寶 (Snowball)：$${Math.round(snowballPool).toLocaleString()} HKD`;
+}
+
+function borrowBank(amount) {
+  if (bankDebt > 0) {
+    document.getElementById("accMsg").textContent = "銀行拒絕：您有未還清的銀行貸款！";
+    return;
+  }
+  if (amount > 1000000) amount = 1000000;
+  bankDebt += amount;
+  cash += amount;
+  tone(500, 0.1, "sine", 0.15);
+  updateAccountUI();
+}
+function repayBank() {
+  if (bankDebt === 0) return;
+  if (cash >= bankDebt) {
+    cash -= bankDebt;
+    bankDebt = 0;
+    updateAccountUI();
+  }
+}
+function borrowUsury(amount) {
+  if (usuryDebt > 0) {
+    document.getElementById("accMsg").textContent = "高利貸拒絕：您有未清的高利貸！";
+    return;
+  }
+  if (amount > 3000000) amount = 3000000;
+  usuryDebt += amount;
+  cash += amount;
+  tone(300, 0.1, "sawtooth", 0.15);
+  updateAccountUI();
+}
+function repayUsury() {
+  if (usuryDebt === 0) return;
+  if (cash >= usuryDebt) {
+    cash -= usuryDebt;
+    usuryDebt = 0;
+    updateAccountUI();
+  }
+}
+function declareBankruptcy() {
+  if (confirm("⚠️ 警告：申請破產將會清空您的現金與所有負債，重置回最初狀態 ($300,000)。確定要申請破產嗎？")) {
+    cash = 300000;
+    bankDebt = 0;
+    usuryDebt = 0;
+    virtualDay = 1;
+    drawCounter = 84;
+    historyRecords = [];
+    lifetimeSpent = 0;
+    lifetimeWon = 0;
+    numberFrequency.fill(0);
+    numberGaps.fill(0);
+    snowballPool = 8000000;
+    currentBetList = [];
+    updateBetListUI();
+    updateHistoryTable();
+    updateAccountUI();
+  }
+}
+
+function saveFavoriteNumbers() {
+  let favData = {};
+  if (method === "banker") {
+    if (bankers.length === 0 && legs.length === 0) return;
+    favData = { method: "banker", desc: `膽拖 [膽:${bankers.join(',')}] [拖:${legs.join(',')}]`, bankers: [...bankers], legs: [...legs] };
+  } else {
+    if (selected.length === 0) return;
+    const mName = method === "single" ? "單式" : "複式";
+    favData = { method: method, desc: `${mName} [${selected.map(n=>String(n).padStart(2,'0')).join(', ')}]`, selected: [...selected] };
+  }
+  favoriteList.unshift(favData);
+  if (favoriteList.length > 20) favoriteList.pop();
+  updateFavoriteSelect();
+  document.getElementById("favoriteMsg").textContent = `✅ 成功儲存至心水清單 (${favoriteList.length}/20)`;
+}
+
+function updateFavoriteSelect() {
+  const sel = document.getElementById("favoriteSelect");
+  sel.innerHTML = `<option value="">-- 請選擇已儲存的心水號碼組 (${favoriteList.length}/20) --</option>`;
+  favoriteList.forEach((item, idx) => {
+    const opt = document.createElement("option");
+    opt.value = idx;
+    opt.textContent = `第 ${idx + 1} 組: ${item.desc}`;
+    sel.appendChild(opt);
+  });
+}
+
+function loadSelectedFavorite(idxStr) {
+  if (idxStr === "") return;
+  const item = favoriteList[parseInt(idxStr)];
+  if (!item) return;
+  method = item.method;
+  document.querySelector(`input[name="method"][value="${method}"]`).checked = true;
+  changeMethod();
+  if (method === "banker") {
+    bankers = [...item.bankers];
+    legs = [...item.legs];
+  } else {
+    selected = [...item.selected];
+  }
+  renderGrid();
+  evaluate();
+}
+
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function tone(freq, dur, type="sine", vol=0.15, delay=0) {
+  const ctx = getCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.type = type;
+  osc.frequency.value = freq;
+  const t = ctx.currentTime + delay;
+  gain.gain.setValueAtTime(vol, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  osc.start(t); osc.stop(t + dur);
+}
+function playTick() { tone(900, 0.07, "sine", 0.12); }
+function playWin() { [523,659,784,1047,1319].forEach((f,i)=>tone(f,0.25,"sine",0.18,i*0.12)); }
+function playLose() { tone(280,0.4,"sawtooth",0.12); tone(180,0.5,"sawtooth",0.1,0.15); }
+function playMachine() { for (let i=0;i<8;i++) tone(200+Math.random()*400, 0.08, "square", 0.06, i*0.07); }
+
+// Wuthering Waves 5-Star Gacha Video Overlay Controller
+const gachaOverlay = document.getElementById("gachaOverlay");
+const gachaVideo = document.getElementById("gachaVideo");
+
+gachaVideo.addEventListener("ended", () => {
+  closeGachaOverlay();
+});
+
+function triggerGachaAnimation() {
+  gachaOverlay.classList.add("active");
+  gachaVideo.currentTime = 0;
+  gachaVideo.muted = false;
+  gachaVideo.play().catch(() => {
+    gachaVideo.muted = true;
+    gachaVideo.play();
+  });
+}
+
+function closeGachaOverlay() {
+  gachaVideo.pause();
+  gachaOverlay.classList.remove("active");
+}
+
+function toggleMusic(on) {
+  const embed = document.getElementById("musicEmbed");
+  const status = document.getElementById("musicStatus");
+  if (on) {
+    embed.innerHTML = `
+      <iframe width="100%" height="200"
+        src="https://www.youtube.com/embed/ZRtdQ81jPUQ?autoplay=1&loop=1&playlist=ZRtdQ81jPUQ&rel=0"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen>
+      </iframe>`;
+    status.textContent = "背景音樂已載入，請點播放器中的 ▶ 開始播放";
+  } else {
+    embed.innerHTML = "";
+    status.textContent = "背景音樂目前關閉";
+  }
+}
+
+function combinations(arr, k) {
+  const res = [];
+  function helper(start, combo) {
+    if (combo.length === k) { res.push([...combo]); return; }
+    for (let i=start; i<arr.length; i++) {
+      combo.push(arr[i]);
+      helper(i+1, combo);
+      combo.pop();
+    }
+  }
+  helper(0, []);
+  return res;
+}
+function shuffle(a) {
+  for (let i=a.length-1;i>0;i--) {
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function generateBalanced(n) {
+  const all = Array.from({length:49},(_,i)=>i+1);
+  for (let t=0;t<600;t++) {
+    const s = shuffle([...all]).slice(0,n).sort((a,b)=>a-b);
+    const lows = s.filter(x=>x<=24).length;
+    const odds = s.filter(x=>x%2).length;
+    if (Math.abs(lows-n/2)<=1.5 && Math.abs(odds-n/2)<=1.5) return s;
+  }
+  return shuffle([...all]).slice(0,n).sort((a,b)=>a-b);
+}
+
+function renderGrid() {
+  const grid = document.getElementById("numberGrid");
+  grid.innerHTML = "";
+  for (let n=1;n<=49;n++) {
+    const ball = document.createElement("div");
+    ball.className = `ball ${ballColor(n)}`;
+    ball.textContent = String(n).padStart(2,"0");
+    if (method==="banker") {
+      if (bankers.includes(n)) ball.classList.add("banker","selected");
+      else if (legs.includes(n)) ball.classList.add("leg","selected");
+    } else if (selected.includes(n)) {
+      ball.classList.add("selected");
+    }
+    ball.onclick = () => toggleNumber(n);
+    grid.appendChild(ball);
+  }
+}
+
+function toggleNumber(n) {
+  playTick();
+  if (method==="banker") {
+    if (bankers.includes(n)) bankers = bankers.filter(x=>x!==n);
+    else if (legs.includes(n)) legs = legs.filter(x=>x!==n);
+    else if (bankers.length < 5) bankers.push(n);
+    else legs.push(n);
+    bankers.sort((a,b)=>a-b);
+    legs.sort((a,b)=>a-b);
+  } else {
+    if (selected.includes(n)) selected = selected.filter(x=>x!==n);
+    else selected.push(n);
+    selected.sort((a,b)=>a-b);
+  }
+  renderGrid();
+  evaluate();
+}
+
+function changeMethod() {
+  method = document.querySelector('input[name="method"]:checked').value;
+  document.getElementById("qpSingleMultiple").style.display = method==="banker" ? "none" : "block";
+  document.getElementById("qpBanker").style.display = method==="banker" ? "block" : "none";
+  document.getElementById("bankerLegInfo").style.display = method==="banker" ? "block" : "none";
+  if (method==="single") document.getElementById("qpCount").value = 6;
+  else if (method==="multiple") document.getElementById("qpCount").value = 8;
+  renderGrid();
+  evaluate();
+}
+
+function clearAll() {
+  selected=[]; bankers=[]; legs=[];
+  renderGrid(); evaluate();
+}
+
+function quickPickBalanced() {
+  const c = parseInt(document.getElementById("qpCount").value)||6;
+  selected = generateBalanced(c);
+  renderGrid(); evaluate();
+}
+function quickPickChaos() {
+  const c = parseInt(document.getElementById("qpCount").value)||6;
+  selected = shuffle(Array.from({length:49},(_,i)=>i+1)).slice(0,c).sort((a,b)=>a-b);
+  renderGrid(); evaluate();
+}
+function quickPickBanker() {
+  const bt = parseInt(document.getElementById("bTarget").value)||2;
+  const lt = parseInt(document.getElementById("lTarget").value)||6;
+  const pool = Array.from({length:49},(_,i)=>i+1);
+  bankers = shuffle([...pool]).slice(0,bt).sort((a,b)=>a-b);
+  legs = shuffle(pool.filter(x=>!bankers.includes(x))).slice(0,lt).sort((a,b)=>a-b);
+  renderGrid(); evaluate();
+}
+
+function evaluate() {
+  currentUnitPrice = parseInt(document.getElementById("unitPrice").value) || 10;
+  const status = document.getElementById("statusMsg");
+  const metrics = document.getElementById("metricsArea");
+  const sim = document.getElementById("simCard");
+  let valid=false, tickets=0;
+
+  if (method==="single") {
+    if (selected.length===6) { valid=true; tickets=1; }
+    else { status.className="warning"; status.textContent="單式必須剛好選 6 個號碼。"; }
+  } else if (method==="multiple") {
+    if (selected.length>=7 && selected.length<=49) {
+      valid=true; tickets=combinations(selected,6).length;
+    } else { status.className="warning"; status.textContent="複式請選 7 到 49 個號碼。"; }
+  } else {
+    const b=bankers.length, l=legs.length;
+    if (b<1||b>5) { status.className="warning"; status.textContent="膽碼必須 1–5 個。"; }
+    else if (b+l<7) { status.className="warning"; status.textContent="膽+拖合計至少 7 個。"; }
+    else { valid=true; tickets=combinations(legs,6-b).length; }
+  }
+
+  if (valid && tickets>0) {
+    status.className="success"; status.textContent="號碼選擇就緒！請選擇購買次數並加入至投注清單 (Bet List)。";
+    metrics.style.display="block"; sim.style.display="block";
+    document.getElementById("ticketCount").textContent = tickets.toLocaleString();
+    document.getElementById("totalCost").textContent = "$" + (tickets * currentUnitPrice).toLocaleString();
+
+    let html="";
+    for (const [name,p] of Object.entries(PRIZE_ODDS)) {
+      const c = Math.min(p*tickets,1);
+      const oneIn = c<1 ? (1/c) : 1;
+      html += `<div>${name}：<code>${(c*100).toFixed(6)}%</code> (約 1 比 ${oneIn.toLocaleString(undefined,{maximumFractionDigits:1})})</div>`;
+    }
+    document.getElementById("probList").innerHTML = html;
+    const anyP = Math.min(ANY_PROB*tickets,1);
+    const anyIn = anyP<1 ? (1/anyP) : 1;
+    document.getElementById("anyPrize").innerHTML =
+      `整體中任何獎機率：<strong>${(anyP*100).toFixed(4)}%</strong> (約 1 比 ${anyIn.toFixed(1)})`;
+  } else {
+    metrics.style.display="none";
+  }
+}
+
+// Bet List Functions
+function addToBetList(repeatCount) {
+  let ticketList = [];
+  let desc = "";
+
+  if (method === "single") {
+    if (selected.length !== 6) {
+      document.getElementById("statusMsg").className = "warning";
+      document.getElementById("statusMsg").textContent = "單式必須剛好選 6 個號碼。";
+      return;
+    }
+    ticketList = [ [...selected] ];
+    desc = `單式 [${selected.map(n=>String(n).padStart(2,'0')).join(', ')}]`;
+  } else if (method === "multiple") {
+    if (selected.length < 7 || selected.length > 49) {
+      document.getElementById("statusMsg").className = "warning";
+      document.getElementById("statusMsg").textContent = "複式請選 7 到 49 個號碼。";
+      return;
+    }
+    ticketList = combinations(selected, 6);
+    desc = `複式 [${selected.map(n=>String(n).padStart(2,'0')).join(', ')}] (${ticketList.length}注)`;
+  } else {
+    const b = bankers.length, l = legs.length;
+    if (b < 1 || b > 5) {
+      document.getElementById("statusMsg").className = "warning";
+      document.getElementById("statusMsg").textContent = "膽碼必須 1–5 個。";
+      return;
+    }
+    if (b + l < 7) {
+      document.getElementById("statusMsg").className = "warning";
+      document.getElementById("statusMsg").textContent = "膽+拖合計至少 7 個。";
+      return;
+    }
+    const needed = 6 - b;
+    ticketList = [];
+    combinations(legs, needed).forEach(lc => {
+      ticketList.push([...bankers, ...lc].sort((a,b)=>a-b));
+    });
+    desc = `膽拖 [膽:${bankers.join(',')}] [拖:${legs.join(',')}] (${ticketList.length}注)`;
+  }
+
+  const costPerRun = ticketList.length * currentUnitPrice;
+  const totalItemCost = costPerRun * repeatCount;
+
+  currentBetList.push({
+    method: method,
+    desc: desc,
+    tickets: ticketList,
+    unitPrice: currentUnitPrice,
+    repeatCount: repeatCount,
+    cost: totalItemCost,
+    singleTicketCount: ticketList.length * repeatCount
+  });
+
+  document.getElementById("statusMsg").className = "success";
+  document.getElementById("statusMsg").textContent = `✅ 成功將 ${repeatCount} 次「${desc}」加入投注清單！`;
+  updateBetListUI();
+}
+
+function removeFromBetList(index) {
+  currentBetList.splice(index, 1);
+  updateBetListUI();
+}
+
+function clearBetList() {
+  currentBetList = [];
+  updateBetListUI();
+}
+
+function updateBetListUI() {
+  const container = document.getElementById("betListItems");
+  const summary = document.getElementById("betListSummary");
+  if (!container || !summary) return;
+
+  if (currentBetList.length === 0) {
+    container.innerHTML = "目前清單尚無彩票，請點擊上方按鈕加入";
+    summary.innerHTML = "總注數: 0 | 總金額: $0";
+    return;
+  }
+
+  let html = "";
+  let totalTickets = 0;
+  let totalCost = 0;
+
+  currentBetList.forEach((item, idx) => {
+    totalTickets += item.singleTicketCount;
+    totalCost += item.cost;
+    html += `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #1e293b;">
+        <span><strong>#${idx + 1}</strong> ${item.desc} (×${item.repeatCount}次) — HKD $${item.cost.toLocaleString()}</span>
+        <button class="btn btn-danger" style="padding: 2px 8px; font-size: 0.75rem;" onclick="removeFromBetList(${idx})">刪除</button>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+  summary.innerHTML = `總注數: ${totalTickets.toLocaleString()} 注 | 總金額: $${totalCost.toLocaleString()} HKD`;
+}
+
+// Bet Confirm 按鈕觸發扣款、將清單全部投注於同一個開獎輪次，且只增加 1 天虛擬日
+function runConfirmedBet() {
+  if (currentBetList.length === 0) {
+    document.getElementById("statusMsg").className = "warning";
+    document.getElementById("statusMsg").textContent = "投注清單目前是空的！請先新增彩票至清單。";
+    return;
+  }
+
+  let totalSpend = 0;
+  let allRoundTicketsList = [];
+
+  currentBetList.forEach(item => {
+    totalSpend += item.cost;
+    for (let r = 0; r < item.repeatCount; r++) {
+      allRoundTicketsList.push(...item.tickets);
+    }
+  });
+
+  if (cash < totalSpend) {
+    document.getElementById("statusMsg").className = "warning";
+    document.getElementById("statusMsg").textContent = "現金不足！請先向銀行或高利貸借款。";
+    return;
+  }
+
+  // 正式扣款
+  cash -= totalSpend;
+  document.getElementById("statusMsg").className = "success";
+  document.getElementById("statusMsg").textContent = "bet successfully！開獎結果揭曉中...";
+
+  document.getElementById("drawResult").style.display = "block";
+  document.getElementById("prizeReport").innerHTML = "";
+  document.getElementById("latestDrawDisplay").innerHTML = "";
+  document.getElementById("smartNotificationBox").innerHTML = "";
+
+  const machineInner = document.getElementById("machineInner");
+  machineInner.innerHTML = "";
+  playMachine();
+  for (let i=0;i<9;i++) {
+    const b = document.createElement("div");
+    b.className = `rolling-ball ${ballColor(Math.floor(Math.random()*49)+1)}`;
+    b.style.animationDelay = (i*0.05)+"s";
+    machineInner.appendChild(b);
+  }
+
+  setTimeout(() => {
+    machineInner.innerHTML = "";
+    
+    // 檢查是否跨越虛擬月份 (每滿 30 天) 以重置頭二獎彩金至起始點
+    const prevMonth = Math.floor((virtualDay - 1) / 30);
+    virtualDay += 1; // 投注同一期只增加 1 天虛擬時間
+    drawCounter++;
+    snowballPool += totalSpend * 0.45;
+
+    const currentMonth = Math.floor((virtualDay - 1) / 30);
+    let monthResetTriggered = false;
+    if (currentMonth > prevMonth) {
+      snowballPool = 8000000; // 重置 1st 與 2nd prize 到起始點
+      monthResetTriggered = true;
+    }
+
+    if (bankDebt > 0 && virtualDay % 365 === 1) bankDebt *= 1.10;
+    if (usuryDebt > 0 && virtualDay % 7 === 1) usuryDebt *= 1.10;
+
+    const drawPool = Array.from({length:49},(_,i)=>i+1);
+    const drawnAll = shuffle(drawPool).slice(0,7);
+    const mainDrawn = drawnAll.slice(0,6).sort((a,b)=>a-b);
+    const special = drawnAll[6];
+
+    let lastMainDrawn = mainDrawn;
+    let lastSpecial = special;
+    let lastDrawIdStr = `第${String(drawCounter).padStart(3,'0')}期`;
+
+    drawnAll.forEach(n => {
+      numberFrequency[n]++;
+      numberGaps[n] = 0;
+    });
+    for (let i=1; i<=49; i++) {
+      if (!drawnAll.includes(i)) numberGaps[i]++;
+    }
+
+    const mainSet = new Set(mainDrawn);
+    const dynamicPayouts = {
+      "頭獎 (6 正碼)": Math.max(8000000, Math.round(snowballPool * 0.45)),
+      "二獎 (5 正 + 特別)": Math.max(1500000, Math.round(snowballPool * 0.15)),
+      "三獎 (5 正碼)": 80000,
+      "四獎 (4 正 + 特別)": 9600,
+      "五獎 (4 正碼)": 640,
+      "六獎 (3 正 + 特別)": 320,
+      "七獎 (3 正碼)": 40
+    };
+
+    let aggregateWon = 0;
+    let aggregateSummary = {};
+    let triggeredGacha = false;
+
+    for (const ticket of allRoundTicketsList) {
+      const tSet = new Set(ticket);
+      let matched = 0;
+      for (const n of tSet) if (mainSet.has(n)) matched++;
+      const hasSpecial = tSet.has(special);
+      let key = null;
+      if (matched===6) key="頭獎 (6 正碼)";
+      else if (matched===5 && hasSpecial) key="二獎 (5 正 + 特別)";
+      else if (matched===5) key="三獎 (5 正碼)";
+      else if (matched===4 && hasSpecial) key="四獎 (4 正 + 特別)";
+      else if (matched===4) key="五獎 (4 正碼)";
+      else if (matched===3 && hasSpecial) key="六獎 (3 正 + 特別)";
+      else if (matched===3) key="七獎 (3 正碼)";
+      
+      if (key) {
+        aggregateSummary[key] = (aggregateSummary[key]||0)+1;
+        aggregateWon += dynamicPayouts[key] * (currentUnitPrice / 10);
+        if (key.includes("頭獎") || key.includes("二獎") || key.includes("三獎")) {
+          triggeredGacha = true;
+        }
+      }
+    }
+
+    if (aggregateSummary["頭獎 (6 正碼)"]) {
+      snowballPool = 8000000;
+    } else {
+      snowballPool += 2000000;
+    }
+
+    if (triggeredGacha) {
+      triggerGachaAnimation();
+    }
+
+    const net = aggregateWon - totalSpend;
+    lifetimeSpent += totalSpend;
+    lifetimeWon += aggregateWon;
+    cash += aggregateWon;
+
+    if (aggregateWon > 0) {
+      playWin();
+      launchConfetti();
+    } else {
+      playLose();
+    }
+
+    const drawContainer = document.getElementById("latestDrawDisplay");
+    let rowHTML = `
+      <div class="draw-header">
+        <span>${lastDrawIdStr} (本期共 ${allRoundTicketsList.length} 注)</span>
+        <span>虛擬日: 第 ${virtualDay} 天</span>
+      </div>
+      <div class="draw-balls-row" id="drawnBallsFlex"></div>
+    `;
+    drawContainer.innerHTML = rowHTML;
+    const ballsFlex = document.getElementById("drawnBallsFlex");
+
+    lastMainDrawn.forEach((num) => {
+      const ball = document.createElement("div");
+      ball.className = `ball ${ballColor(num)} drawn win`;
+      ball.textContent = String(num).padStart(2,"0");
+      ballsFlex.appendChild(ball);
+    });
+    const plus = document.createElement("span");
+    plus.className = "plus-sign";
+    plus.textContent = "+";
+    ballsFlex.appendChild(plus);
+
+    const sBall = document.createElement("div");
+    sBall.className = `ball ${ballColor(lastSpecial)} drawn win`;
+    sBall.textContent = String(lastSpecial).padStart(2,"0");
+    ballsFlex.appendChild(sBall);
+
+    let html = "";
+    if (monthResetTriggered) {
+      html += `<div class="warning" style="margin-bottom:6px;">📅 虛擬時間經過了一個月，頭獎與二獎彩金已重置回起始點 ($8,000,000)！</div>`;
+    }
+    if (aggregateWon > 0) {
+      html += `<div class="success" style="font-size:1.1rem;margin-bottom:6px;">🎉 確認投注中獎！總共獲得獎金 HKD $${Math.round(aggregateWon).toLocaleString()}</div>`;
+    } else {
+      html += `<div class="info">本期確認投注未中獎。</div>`;
+    }
+
+    html += `<div style="margin-top:12px; font-weight:bold; color:var(--accent);">📊 合計 7 獎派彩明細：</div>`;
+    html += `<table class="prize-breakdown-table"><thead><tr><th>獎項級別</th><th>中獎注數</th><th>派彩說明</th></tr></thead><tbody>`;
+    const allTiers = ["頭獎 (6 正碼)", "二獎 (5 正 + 特別)", "三獎 (5 正碼)", "四獎 (4 正 + 特別)", "五獎 (4 正碼)", "六獎 (3 正 + 特別)", "七獎 (3 正碼)"];
+    allTiers.forEach(tierName => {
+      const count = aggregateSummary[tierName] || 0;
+      if (count > 0) {
+        html += `<tr><td>${tierName}</td><td>${count} 注</td><td>已計入總獎金</td></tr>`;
+      }
+    });
+    html += `</tbody></table>`;
+
+    if (net >= 0) html += `<div class="success" style="margin-top:8px;">淨利潤：+HKD $${Math.round(net).toLocaleString()}</div>`;
+    else html += `<div style="color:#f87171;margin-top:8px;">淨虧損：-HKD $${Math.abs(Math.round(net)).toLocaleString()}</div>`;
+
+    document.getElementById("prizeReport").innerHTML = html;
+    document.getElementById("smartNotificationBox").innerHTML = triggeredGacha ? "✨ 觸發《鳴潮》五星抽卡大獎動畫 (中三獎或以上)！" : "🔕 本期未達三獎以上門檻。";
+
+    let oddsCount = lastMainDrawn.filter(n => n % 2 !== 0).length;
+    let evensCount = 6 - oddsCount;
+    let highsCount = lastMainDrawn.filter(n => n >= 25).length;
+    let lowsCount = 6 - highsCount;
+    document.getElementById("statOddEven").textContent = `${oddsCount} 奇 : ${evensCount} 偶`;
+    document.getElementById("statHighLow").textContent = `${highsCount} 大 : ${lowsCount} 小`;
+
+    let freqArr = numberFrequency.map((cnt, idx) => ({num: idx, count: cnt})).filter(x => x.num > 0);
+    freqArr.sort((a,b) => b.count - a.count);
+    let hottest = freqArr.slice(0, 3).map(x => `${String(x.num).padStart(2,'0')}號(${x.count}次)`).join(', ');
+    document.getElementById("hotColdReport").innerHTML = `🔥 <strong>最熱門號碼排行：</strong> ${hottest || '累積中...'}`;
+
+    let gapArr = numberGaps.map((g, idx) => ({num: idx, gap: g})).filter(x => x.num > 0);
+    gapArr.sort((a,b) => b.gap - a.gap);
+    let coldest = gapArr.slice(0, 5).map(x => `${String(x.num).padStart(2,'0')}號(遺漏${x.gap}期)`).join(', ');
+    document.getElementById("gapReport").innerHTML = `⏳ <strong>最高遺漏值號碼 (冷號 Gap Analysis)：</strong> ${coldest}`;
+
+    const curYear = Math.floor((virtualDay - 1) / 365) + 1;
+    
+    historyRecords.unshift({
+      drawId: lastDrawIdStr,
+      timeStr: `Day ${virtualDay}, Year ${curYear}`,
+      method: `綜合投注 (${currentBetList.length}組策略)`,
+      tickets: allRoundTicketsList.length,
+      spent: totalSpend,
+      won: aggregateWon,
+      net: net,
+      subTickets: allRoundTicketsList
+    });
+
+    currentBetList = [];
+    updateBetListUI();
+
+    updateHistoryTable();
+    updateAccountUI();
+  }, 1500);
+}
+
+let expandedRows = {};
+function toggleRowExpansion(index) {
+  expandedRows[index] = !expandedRows[index];
+  updateHistoryTable();
+}
+
+function updateHistoryTable() {
+  const tbody = document.getElementById("historyTableBody");
+  tbody.innerHTML = "";
+  if (historyRecords.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; color:var(--muted);">尚無歷史記錄</td></tr>`;
+  } else {
+    historyRecords.forEach((r, idx) => {
+      const tr = document.createElement("tr");
+      const netClass = r.net >= 0 ? "success" : "";
+      const netStr = (r.net >= 0 ? "+$" : "-$") + Math.abs(Math.round(r.net)).toLocaleString();
+      const isExpanded = expandedRows[idx] || false;
+      
+      tr.innerHTML = `
+        <td>${r.drawId}</td>
+        <td>${r.timeStr}</td>
+        <td>${r.method}</td>
+        <td>共 ${r.tickets.toLocaleString()} 注</td>
+        <td>$${Math.round(r.spent).toLocaleString()}</td>
+        <td>$${Math.round(r.won).toLocaleString()}</td>
+        <td class="${netClass}">${netStr}</td>
+        <td><button class="expand-btn" onclick="toggleRowExpansion(${idx})">${isExpanded ? '▲' : '▼'}</button></td>
+      `;
+      tbody.appendChild(tr);
+
+      if (isExpanded) {
+        const subTr = document.createElement("tr");
+        subTr.className = "sub-row";
+        let subHtml = `<td colspan="8"><div class="sub-ticket-list"><strong>本期購買的所有彩票明細 (${r.subTickets.length} 注)：</strong><br>`;
+        r.subTickets.forEach((t, tIdx) => {
+          subHtml += `第 ${tIdx + 1} 注: [${t.map(n=>String(n).padStart(2,'0')).join(', ')}] <br>`;
+        });
+        subHtml += `</div></td>`;
+        subTr.innerHTML = subHtml;
+        tbody.appendChild(subTr);
+      }
+    });
+  }
+
+  document.getElementById("statTotalSpent").textContent = "$" + Math.round(lifetimeSpent).toLocaleString();
+  document.getElementById("statTotalWon").textContent = "$" + Math.round(lifetimeWon).toLocaleString();
+  const lifetimeNet = lifetimeWon - lifetimeSpent;
+  const netEl = document.getElementById("statNetPL");
+  netEl.textContent = (lifetimeNet >= 0 ? "+$" : "-$") + Math.abs(Math.round(lifetimeNet)).toLocaleString();
+  netEl.style.color = lifetimeNet >= 0 ? "#4ade80" : "#ef4444";
+}
+
+function launchConfetti() {
+  const canvas = document.getElementById("confettiCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+  const pieces = Array.from({length:120},()=>({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height - canvas.height,
+    r: Math.random()*6+3,
+    c: ["#ef4444","#3b82f6","#22c55e","#f59e0b","#a855f7","#fff"][Math.floor(Math.random()*6)],
+    vy: Math.random()*3+2,
+    vx: (Math.random()-0.5)*2,
+    rot: Math.random()*360
+  }));
+  let frame=0;
+  function draw() {
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    pieces.forEach(p=>{
+      p.y+=p.vy; p.x+=p.vx; p.rot+=3;
+      ctx.save();
+      ctx.translate(p.x,p.y);
+      ctx.rotate(p.rot*Math.PI/180);
+      ctx.fillStyle=p.c;
+      ctx.fillRect(-p.r/2,-p.r/2,p.r,p.r*0.6);
+      ctx.restore();
+    });
+    frame++;
+    if (frame<120) requestAnimationFrame(draw);
+    else ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+  draw();
+}
+
+renderGrid();
+evaluate();
+updateAccountUI();
+</script>
+</body>
+</html>
